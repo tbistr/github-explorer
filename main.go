@@ -1,8 +1,7 @@
 package main
 
-import "fmt"
+import "github.com/tbistr/ghe/cmd"
 
 func main() {
-	fmt.Println("hello, world.")
-	fmt.Println("please run `go mod init <your pkg name>`.")
+	cmd.Execute()
 }
