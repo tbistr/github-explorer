@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/google/go-github/v53/github"
 	"github.com/tbistr/inc"
@@ -24,35 +25,44 @@ func New(token string) *Handler {
 
 // Root is the handler for the root command.
 func (h *Handler) Root() error {
-	opt := &github.RepositoryListOptions{
-		Type:        "owner",
-		ListOptions: github.ListOptions{},
-	}
-	// get all allRepos
-	allRepos := make([]*github.Repository, 0)
-	for i := 0; ; i++ {
+	allRepos := []*github.Repository{}
+	e := inc.New("", nil)
+
+	fetch := func(page int) (next int, ok bool, err error) {
+		opt := &github.RepositoryListOptions{
+			Type:        "owner",
+			ListOptions: github.ListOptions{Page: page},
+		}
+
 		repos, resp, err := h.github.Repositories.List(context.Background(), "", opt)
 		if err != nil {
-			return err
+			return 0, false, err
 		}
+
+		cands := []inc.Candidate{}
+		for _, repo := range repos {
+			cands = append(cands, inc.Candidate{
+				Text: []rune(repo.GetName()),
+				Ptr:  repo,
+			})
+		}
+		e.AppendCands(cands)
 		allRepos = append(allRepos, repos...)
-		if resp.NextPage == 0 {
-			break
-		}
 
-		opt.Page = resp.NextPage
+		return resp.NextPage, resp.NextPage != 0, nil
 	}
 
-	cands := make([]inc.Candidate, len(allRepos))
-	for i, repo := range allRepos {
-		cands[i] = inc.Candidate{
-			Text: repo.GetName(),
-			Ptr:  repo,
+	next, ok, err := fetch(0)
+	go func() {
+		for ok {
+			next, ok, err = fetch(next)
 		}
+	}()
+	canceled, selected, err := ui.RunSelector(e)
+	if canceled || (err != nil) {
+		return err
 	}
-
-	e := inc.New("", cands)
-	ui.RunSelector(e)
+	fmt.Println(selected.Ptr.(*github.Repository).GetURL())
 
 	return nil
 }
