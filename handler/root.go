@@ -62,7 +62,46 @@ func (h *Handler) Root() error {
 	if canceled || (err != nil) {
 		return err
 	}
-	fmt.Println(selected.Ptr.(*github.Repository).GetURL())
+
+	repo := selected.Ptr.(*github.Repository)
+	branch, _, err := h.github.Repositories.GetBranch(context.Background(), repo.GetOwner().GetLogin(), repo.GetName(), repo.GetDefaultBranch(), true)
+	if err != nil {
+		return err
+	}
+
+	var entry *github.TreeEntry
+	sha := branch.Commit.GetSHA()
+	for {
+		tree, _, err := h.github.Git.GetTree(context.Background(), repo.GetOwner().GetLogin(), repo.GetName(), sha, false)
+		if err != nil {
+			return err
+		}
+		items := make([]inc.Candidate, len(tree.Entries))
+		for i, entry := range tree.Entries {
+			items[i] = inc.Candidate{
+				Text: []rune(entry.GetPath()),
+				Ptr:  entry,
+			}
+		}
+		e := inc.New("", items)
+		canceled, selected, err := ui.RunSelector(e)
+		if canceled || (err != nil) {
+			return err
+		}
+		entry = selected.Ptr.(*github.TreeEntry)
+		if entry.GetType() == "blob" {
+			break
+		}
+
+		sha = entry.GetSHA()
+	}
+
+	b, _, err := h.github.Git.GetBlobRaw(context.Background(), repo.GetOwner().GetLogin(), repo.GetName(), entry.GetSHA())
+	if err != nil {
+		return err
+	}
+
+	fmt.Print(string(b))
 
 	return nil
 }
