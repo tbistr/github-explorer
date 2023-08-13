@@ -19,7 +19,6 @@ type fileSelector struct {
 	paneStyle Pane
 	Canceled  bool
 	Result    *github.TreeEntry
-	Error     error
 }
 
 var _ tea.Model = fileSelector{}
@@ -90,8 +89,7 @@ func (fs fileSelector) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case treeMsg:
 		if msgT.err != nil {
-			fs.Error = msgT.err
-			return fs, windowPreQuit
+			return fs, windowError(msgT.err)
 		}
 		items := make([]inc.Candidate, len(msgT.tree.Entries))
 		for i, entry := range msgT.tree.Entries {
@@ -112,8 +110,7 @@ func (fs fileSelector) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case contentMsg:
 		if msgT.err != nil {
-			fs.Error = msgT.err
-			return fs, windowPreQuit
+			return fs, windowError(msgT.err)
 		}
 		fs.preview = msgT.content
 	}

@@ -30,6 +30,10 @@ type windowQuitMsg struct{}
 
 func windowQuit() tea.Msg { return windowQuitMsg{} }
 
+type windowErrorMsg error
+
+func windowError(err error) tea.Cmd { return func() tea.Msg { return windowErrorMsg(err) } }
+
 type Window struct {
 	header          string
 	isRepoSelection bool
@@ -69,6 +73,11 @@ func (w Window) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		w.width = msg.Width
 		w.height = msg.Height
+
+	case windowErrorMsg:
+		w.Result.Error = error(msg)
+		return w, windowQuit
+
 	case windowPreQuitMsg:
 		if w.repoSelector.Canceled || w.fileSelector.Canceled {
 			w.Result.Canceled = true
@@ -90,11 +99,6 @@ func (w Window) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				})
 		} else {
-			if w.fileSelector.Error != nil {
-				w.Result.Error = w.fileSelector.Error
-				return w, windowQuit
-			}
-
 			if w.fileSelector.Result.GetType() == "blob" {
 				w.Result.Entry = w.fileSelector.Result
 				return w, windowQuit

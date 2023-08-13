@@ -19,7 +19,6 @@ type repoSelector struct {
 	paneStyle Pane
 	Canceled  bool
 	Result    *github.Repository
-	Error     error
 }
 
 var _ tea.Model = repoSelector{}
@@ -69,8 +68,7 @@ func (rs repoSelector) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case fetchRepoMsg:
 		if msgT.err != nil {
-			rs.Error = msgT.err
-			return rs, windowPreQuit
+			return rs, windowError(msgT.err)
 		}
 
 		items := make([]inc.Candidate, len(msgT.repos))

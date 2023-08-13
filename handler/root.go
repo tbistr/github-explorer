@@ -33,6 +33,9 @@ func (h *Handler) Root() error {
 	if err != nil {
 		return err
 	}
+	if result.Error != nil {
+		return result.Error
+	}
 	if result.Canceled {
 		return nil
 	}
