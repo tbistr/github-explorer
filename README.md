@@ -1,3 +1,3 @@
-# golang-vscode-devcontainer
+# github-explorer
 
-vscode devcontainer for golang.
+<img src="demo.gif" width="500">
