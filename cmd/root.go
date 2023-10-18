@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/tbistr/ghe/handler"
+	"github.com/tbistr/github-explorer/handler"
 )
 
 var h *handler.Handler

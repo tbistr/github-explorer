@@ -1,6 +1,6 @@
 package main
 
-import "github.com/tbistr/ghe/cmd"
+import "github.com/tbistr/github-explorer/cmd"
 
 func main() {
 	cmd.Execute()
