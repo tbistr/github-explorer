@@ -11,15 +11,15 @@ import (
 )
 
 type fileSelector struct {
-	client        *github.Client
-	repo          *github.Repository
-	engine        *inc.Engine
-	selector      ui.Model
-	preview       string
-	width, height int
-	Canceled      bool
-	Result        *github.TreeEntry
-	Error         error
+	client    *github.Client
+	repo      *github.Repository
+	engine    *inc.Engine
+	selector  ui.Model
+	preview   string
+	paneStyle Pane
+	Canceled  bool
+	Result    *github.TreeEntry
+	Error     error
 }
 
 var _ tea.Model = fileSelector{}
@@ -82,11 +82,10 @@ func (fs fileSelector) Init() tea.Cmd {
 func (fs fileSelector) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msgT := msg.(type) {
 	case tea.WindowSizeMsg:
-		fs.width = msgT.Width
-		fs.height = msgT.Height
+		fs.paneStyle.SetSize(msgT.Width/2, msgT.Height)
+		w, h := fs.paneStyle.GetContentSize()
 		msg = tea.WindowSizeMsg{
-			Width:  msgT.Width/2 - 2,
-			Height: msgT.Height - 2,
+			Width: w, Height: h,
 		}
 
 	case treeMsg:
@@ -134,17 +133,9 @@ func (fs fileSelector) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (fs fileSelector) View() string {
-	contentStyle := lipgloss.NewStyle().
-		Height(fs.height - 2).
-		Width(fs.width/2 - 2).
-		MaxHeight(fs.height - 2)
-
-	paneStyle := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder())
-
 	return lipgloss.JoinHorizontal(
 		lipgloss.Top,
-		paneStyle.Render(contentStyle.Render(fs.selector.View())),
-		paneStyle.Render(contentStyle.Render(fs.preview)),
+		fs.paneStyle.Render(fs.selector.View()),
+		fs.paneStyle.Render(fs.preview),
 	)
 }

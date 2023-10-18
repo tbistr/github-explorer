@@ -11,15 +11,15 @@ import (
 )
 
 type repoSelector struct {
-	client        *github.Client
-	owner         string
-	engine        *inc.Engine
-	selector      ui.Model
-	preview       string
-	width, height int
-	Canceled      bool
-	Result        *github.Repository
-	Error         error
+	client    *github.Client
+	owner     string
+	engine    *inc.Engine
+	selector  ui.Model
+	preview   string
+	paneStyle Pane
+	Canceled  bool
+	Result    *github.Repository
+	Error     error
 }
 
 var _ tea.Model = repoSelector{}
@@ -61,11 +61,10 @@ func (rs repoSelector) Init() tea.Cmd {
 func (rs repoSelector) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msgT := msg.(type) {
 	case tea.WindowSizeMsg:
-		rs.width = msgT.Width
-		rs.height = msgT.Height
+		rs.paneStyle.SetSize(msgT.Width/2, msgT.Height)
+		w, h := rs.paneStyle.GetContentSize()
 		msg = tea.WindowSizeMsg{
-			Width:  msgT.Width/2 - 2,
-			Height: msgT.Height - 2,
+			Width: w, Height: h,
 		}
 
 	case fetchRepoMsg:
@@ -102,19 +101,10 @@ func (rs repoSelector) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (rs repoSelector) View() string {
-	contentStyle := lipgloss.NewStyle().
-		Height(rs.height - 2).
-		Width(rs.width/2 - 2).
-		MaxHeight(rs.height - 2).
-		MaxWidth(rs.width/2 - 2)
-
-	paneStyle := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder())
-
 	return lipgloss.JoinHorizontal(
 		lipgloss.Top,
-		paneStyle.Render(contentStyle.Render(rs.selector.View())),
-		paneStyle.Render(contentStyle.Render(rs.preview)),
+		rs.paneStyle.Render(rs.selector.View()),
+		rs.paneStyle.Render(rs.preview),
 	)
 }
 
