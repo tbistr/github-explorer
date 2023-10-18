@@ -96,8 +96,14 @@ func (fs fileSelector) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		items := make([]inc.Candidate, len(msgT.tree.Entries))
 		for i, entry := range msgT.tree.Entries {
+			var text string
+			if entry.GetType() == "blob" {
+				text = "📄 " + entry.GetPath()
+			} else {
+				text = "📁 " + entry.GetPath() + "/"
+			}
 			items[i] = inc.Candidate{
-				Text: []rune(entry.GetPath()),
+				Text: []rune(text),
 				Ptr:  entry,
 			}
 		}
@@ -131,8 +137,7 @@ func (fs fileSelector) View() string {
 	contentStyle := lipgloss.NewStyle().
 		Height(fs.height - 2).
 		Width(fs.width/2 - 2).
-		MaxHeight(fs.height - 2).
-		MaxWidth(fs.width/2 - 2)
+		MaxHeight(fs.height - 2)
 
 	paneStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder())
