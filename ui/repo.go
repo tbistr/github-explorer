@@ -11,14 +11,14 @@ import (
 )
 
 type repoSelector struct {
-	client    *github.Client
-	owner     string
-	engine    *inc.Engine
-	selector  ui.Model
-	preview   string
-	paneStyle Pane
-	Canceled  bool
-	Result    *github.Repository
+	client                        *github.Client
+	owner                         string
+	engine                        *inc.Engine
+	selector                      ui.Model
+	preview                       string
+	leftPaneStyle, rightPaneStyle Pane
+	Canceled                      bool
+	Result                        *github.Repository
 }
 
 var _ tea.Model = repoSelector{}
@@ -60,8 +60,10 @@ func (rs repoSelector) Init() tea.Cmd {
 func (rs repoSelector) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msgT := msg.(type) {
 	case tea.WindowSizeMsg:
-		rs.paneStyle.SetSize(msgT.Width/2, msgT.Height)
-		w, h := rs.paneStyle.GetContentSize()
+		leftW := max(msgT.Width/3, 40)
+		rs.leftPaneStyle.SetSize(leftW, msgT.Height)
+		rs.rightPaneStyle.SetSize(msgT.Width-leftW, msgT.Height)
+		w, h := rs.leftPaneStyle.GetContentSize()
 		msg = tea.WindowSizeMsg{
 			Width: w, Height: h,
 		}
@@ -101,16 +103,24 @@ func (rs repoSelector) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (rs repoSelector) View() string {
 	return lipgloss.JoinHorizontal(
 		lipgloss.Top,
-		rs.paneStyle.Render(rs.selector.View()),
-		rs.paneStyle.Render(rs.preview),
+		rs.leftPaneStyle.Render(rs.selector.View()),
+		rs.rightPaneStyle.Render(rs.preview),
 	)
 }
 
 func (rs repoSelector) repoPreview(repo *github.Repository) string {
+	head1 := lipgloss.NewStyle().
+		Bold(true).
+		Reverse(true)
 	return lipgloss.JoinVertical(
 		lipgloss.Left,
+		head1.Render("# Name"),
 		repo.GetName(),
+		"\n",
+		head1.Render("# Description"),
 		repo.GetDescription(),
+		"\n",
+		head1.Render("# URL"),
 		repo.GetHTMLURL(),
 	)
 }

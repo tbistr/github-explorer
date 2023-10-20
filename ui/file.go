@@ -2,6 +2,8 @@ package ui
 
 import (
 	"context"
+	"errors"
+	"unicode/utf8"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -11,14 +13,14 @@ import (
 )
 
 type fileSelector struct {
-	client    *github.Client
-	repo      *github.Repository
-	engine    *inc.Engine
-	selector  ui.Model
-	preview   string
-	paneStyle Pane
-	Canceled  bool
-	Result    *github.TreeEntry
+	client                        *github.Client
+	repo                          *github.Repository
+	engine                        *inc.Engine
+	selector                      ui.Model
+	preview                       string
+	leftPaneStyle, rightPaneStyle Pane
+	Canceled                      bool
+	Result                        *github.TreeEntry
 }
 
 var _ tea.Model = fileSelector{}
@@ -57,7 +59,14 @@ func (fs fileSelector) fetchContent(entry *github.TreeEntry) tea.Cmd {
 			fs.repo.GetName(),
 			entry.GetSHA(),
 		)
-		return contentMsg{string(b), err}
+		if err != nil {
+			return contentMsg{"", err}
+		}
+		if !utf8.Valid(b) {
+			return contentMsg{"", errors.New("invalid utf8 content")}
+		}
+
+		return contentMsg{string(b), nil}
 	}
 }
 
@@ -81,8 +90,10 @@ func (fs fileSelector) Init() tea.Cmd {
 func (fs fileSelector) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msgT := msg.(type) {
 	case tea.WindowSizeMsg:
-		fs.paneStyle.SetSize(msgT.Width/2, msgT.Height)
-		w, h := fs.paneStyle.GetContentSize()
+		leftW := max(msgT.Width/3, 40)
+		fs.leftPaneStyle.SetSize(leftW, msgT.Height)
+		fs.rightPaneStyle.SetSize(msgT.Width-leftW, msgT.Height)
+		w, h := fs.leftPaneStyle.GetContentSize()
 		msg = tea.WindowSizeMsg{
 			Width: w, Height: h,
 		}
@@ -132,7 +143,7 @@ func (fs fileSelector) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (fs fileSelector) View() string {
 	return lipgloss.JoinHorizontal(
 		lipgloss.Top,
-		fs.paneStyle.Render(fs.selector.View()),
-		fs.paneStyle.Render(fs.preview),
+		fs.leftPaneStyle.Render(fs.selector.View()),
+		fs.rightPaneStyle.Render(fs.preview),
 	)
 }
